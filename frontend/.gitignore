@@ -1,0 +1,61 @@
+# ============================================
+# FundChain - Git Ignore
+# ============================================
+
+# Foundry
+cache/
+out/
+broadcast/
+coverage/
+lcov.info
+
+# Anvil local blockchain state
+anvil-state.json
+anvil-state-final.json
+anvil-state*.json
+
+# Frontend dependencies
+frontend/node_modules/
+
+# Frontend production build
+frontend/dist/
+
+# Vite
+frontend/.vite/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editor / IDE
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+
+# Common local folders
+.logs/
+.ignore/
+
+# Documentation build output
+docs/
