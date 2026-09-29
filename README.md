@@ -229,7 +229,7 @@ Install:
 ### 1. Clone the Repository
 
 ```bash
-git clone --recurse-submodules <repository-url>
+git clone --recurse-submodules https://github.com/yassinweb3/fundchain.git
 cd crowdfunding-dapp
 ```
 
