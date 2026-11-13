@@ -230,7 +230,7 @@ Install:
 
 ```bash
 git clone --recurse-submodules https://github.com/yassinweb3/fundchain.git
-cd crowdfunding-dapp
+cd fundchain
 ```
 
 If the repository was cloned without submodules:

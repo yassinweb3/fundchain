@@ -10,7 +10,7 @@ on:
 jobs:
   smart-contract:
     name: Smart Contract
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     permissions:
       contents: read
@@ -23,6 +23,8 @@ jobs:
 
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.8.1
 
       - name: Check formatting
         run: forge fmt --check
@@ -31,11 +33,14 @@ jobs:
         run: forge build --sizes
 
       - name: Run tests
-        run: forge test
+        run: forge test -vv
 
   frontend:
     name: Frontend
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+
+    permissions:
+      contents: read
 
     defaults:
       run:
@@ -48,12 +53,94 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
+      - name: Pin npm
+        run: npm install --global npm@11.12.1
+
+      - name: Verify frontend toolchain
+        shell: bash
+        run: |
+          test "$(node --version)" = "v24.15.0"
+          test "$(npm --version)" = "11.12.1"
+
       - name: Install dependencies
         run: npm ci
+
+      - name: Check dependency tree
+        run: npm ls
+
+      - name: Check security audit against temporary exception
+        shell: bash
+        run: |
+          node <<'NODE'
+          const { spawnSync } = require('node:child_process');
+          const result = spawnSync('npm', ['audit', '--json'], { encoding: 'utf8' });
+          if (result.stdout) console.log(result.stdout);
+          if (result.stderr) console.error(result.stderr);
+          if (result.error || ![0, 1].includes(result.status)) {
+            throw new Error('npm audit process failed');
+          }
+          const report = JSON.parse(result.stdout);
+          if (report.error || report.auditReportVersion !== 2 ||
+              !report.metadata?.vulnerabilities || !report.vulnerabilities ||
+              Array.isArray(report.vulnerabilities)) {
+            throw new Error('Invalid npm audit report');
+          }
+          const counts = report.metadata.vulnerabilities;
+          const entries = Object.entries(report.vulnerabilities);
+          if (counts.high !== 0 || counts.critical !== 0 ||
+              counts.low !== 0 || counts.info !== 0 ||
+              counts.total !== entries.length || counts.moderate !== entries.length) {
+            throw new Error('Audit findings fall outside the moderate-only exception');
+          }
+          if (entries.length === 0) {
+            if (result.status !== 0) throw new Error('Unexpected audit exit status');
+            console.log('Clean audit; no exception used.');
+            process.exit(0);
+          }
+          if (Date.now() >= Date.parse('2026-12-14T00:00:00+03:00')) {
+            throw new Error('Tooling risk exception expired; see TOOLING_RISK_EXCEPTION.md');
+          }
+          const allowed = new Set([
+            'minimatch', '@eslint/config-array', 'eslint', '@eslint/js',
+            '@typescript-eslint/typescript-estree', '@typescript-eslint/parser',
+            '@typescript-eslint/type-utils', '@typescript-eslint/utils',
+            '@typescript-eslint/eslint-plugin', 'typescript-eslint',
+          ]);
+          const advisory = 'https://github.com/advisories/GHSA-g3hv-75wg-m249';
+          if (entries.length > allowed.size) throw new Error('Exception scope exceeded');
+          const visited = new Set();
+          const visiting = new Set();
+          function verify(name) {
+            if (visited.has(name)) return;
+            const item = report.vulnerabilities[name];
+            if (!allowed.has(name) || !item || item.name !== name ||
+                item.severity !== 'moderate' || !Array.isArray(item.via) ||
+                item.via.length === 0 || !Array.isArray(item.nodes) ||
+                item.nodes.length === 0 || item.nodes.some(p => p !== `node_modules/${name}`)) {
+              throw new Error(`Unapproved affected dependency: ${name}`);
+            }
+            if (visiting.has(name)) throw new Error('Cyclic audit dependency chain');
+            visiting.add(name);
+            for (const cause of item.via) {
+              if (typeof cause === 'string') verify(cause);
+              else if (!cause || name !== 'minimatch' || cause.name !== 'minimatch' ||
+                       cause.url !== advisory || cause.severity !== 'moderate') {
+                throw new Error(`Unapproved advisory affecting ${name}`);
+              }
+            }
+            visiting.delete(name);
+            visited.add(name);
+          }
+          for (const [name] of entries) verify(name);
+          console.log(`Accepted ${entries.length} moderate entries under the expiring minimatch exception.`);
+          NODE
+
+      - name: Lint frontend
+        run: npm run lint
 
       - name: Build frontend
         run: npm run build

@@ -1,15 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { BrowserProvider, Contract, formatEther, parseEther } from "ethers";
+import type { ContractTransactionResponse } from "ethers";
 
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from "./contract";
 import "./App.css";
 import heroImage from "./assets/hero.png";
-
-declare global {
-  interface Window {
-    ethereum?: any;
-  }
-}
 
 type Campaign = {
   id: number;
@@ -27,9 +22,16 @@ function shortAddress(address: string) {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
-function getError(error: any): string {
+function getError(error: unknown): string {
+  const details =
+    error !== null && (typeof error === "object" || typeof error === "function")
+      ? error
+      : {};
   const message = String(
-    error?.shortMessage || error?.reason || error?.message || error,
+    ("shortMessage" in details && details.shortMessage) ||
+      ("reason" in details && details.reason) ||
+      ("message" in details && details.message) ||
+      error,
   );
 
   const lowerMessage = message.toLowerCase();
@@ -183,7 +185,7 @@ function App() {
   }
 
   async function execute(
-    action: (contract: Contract) => Promise<any>,
+    action: (contract: Contract) => Promise<ContractTransactionResponse>,
     successMessage: string,
   ): Promise<boolean> {
     if (!account || loading) return false;
