@@ -1,11 +1,8 @@
-import type { Eip1193Provider } from "ethers";
+import type { InjectedWallet } from "./web3";
 
 declare global {
   interface Window {
-    ethereum?: Eip1193Provider & {
-      on?: (event: string, listener: (...args: unknown[]) => void) => void;
-      removeListener?: (event: string, listener: (...args: unknown[]) => void) => void;
-    };
+    ethereum?: InjectedWallet;
   }
 }
 

@@ -1,358 +1,87 @@
-import { useCallback, useEffect, useState } from "react";
-import { BrowserProvider, Contract, formatEther, parseEther } from "ethers";
-import type { ContractTransactionResponse } from "ethers";
-
-import { CONTRACT_ADDRESS, CONTRACT_ABI } from "./contract";
+import { useState } from "react";
+import type { FormEvent } from "react";
+import { formatEther, parseEther } from "ethers";
+import { CHAIN_ID_TEXT, NETWORK_NAME, payoutRecipient } from "./contract";
+import { getError } from "./errors";
+import { useWalletSession } from "./useWalletSession";
+import { useCampaigns } from "./useCampaigns";
+import { useTransaction } from "./useTransaction";
+import type { WalletServices } from "./web3";
+import { walletServices } from "./web3";
 import "./App.css";
 import heroImage from "./assets/hero.png";
-
-type Campaign = {
-  id: number;
-  owner: string;
-  goal: bigint;
-  raised: bigint;
-  deadline: number;
-  withdrawn: boolean;
-  contribution: bigint;
-};
-
-const CHAIN_ID = 31337n;
 
 function shortAddress(address: string) {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
-function getError(error: unknown): string {
-  const details =
-    error !== null && (typeof error === "object" || typeof error === "function")
-      ? error
-      : {};
-  const message = String(
-    ("shortMessage" in details && details.shortMessage) ||
-      ("reason" in details && details.reason) ||
-      ("message" in details && details.message) ||
-      error,
-  );
-
-  const lowerMessage = message.toLowerCase();
-
-  if (
-    lowerMessage.includes("user rejected") ||
-    lowerMessage.includes("user denied")
-  ) {
-    return "You cancelled the transaction.";
-  }
-
-  if (message.includes("CampaignNotEnded")) {
-    return "The campaign has not ended yet.";
-  }
-
-  if (message.includes("GoalNotReached")) {
-    return "The funding goal has not been reached.";
-  }
-
-  if (message.includes("CampaignEnded")) {
-    return "This campaign has already ended.";
-  }
-
-  if (message.includes("NothingToRefund")) {
-    return "You have nothing to refund.";
-  }
-
-  if (message.includes("GoalWasReached")) {
-    return "This campaign reached its goal.";
-  }
-
-  if (message.includes("NotOwner")) {
-    return "Only the campaign owner can withdraw.";
-  }
-
-  return message;
+function App({ services = walletServices }: { services?: WalletServices }) {
+  const wallet = useWalletSession(services);
+  const data = useCampaigns(wallet.session, wallet.isCurrent, services);
+  const transactions = useTransaction(wallet, data.refreshAfterTransaction, services);
+  // Changing sessions remounts only the form/page drafts; transaction history stays above this key.
+  return <FundChainPage key={wallet.revision} wallet={wallet} data={data} transactions={transactions} />;
 }
 
-function App() {
-  const [account, setAccount] = useState("");
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+type PageProps = {
+  wallet: ReturnType<typeof useWalletSession>;
+  data: ReturnType<typeof useCampaigns>;
+  transactions: ReturnType<typeof useTransaction>;
+};
+
+function FundChainPage({ wallet, data, transactions }: PageProps) {
+  const account = wallet.session?.account ?? "";
+  const campaigns = data.snapshot?.campaigns ?? [];
+  const now = data.snapshot?.now ?? null;
   const [goal, setGoal] = useState("");
   const [days, setDays] = useState("");
   const [amounts, setAmounts] = useState<Record<number, string>>({});
-  const [loading, setLoading] = useState(false);
-  const [notice, setNotice] = useState("");
-  const [error, setError] = useState("");
-  const [now, setNow] = useState<number | null>(null);
+  const [recipients, setRecipients] = useState<Record<number, string>>({});
+  const [formError, setError] = useState("");
+  const loading = wallet.connecting || transactions.busy;
+  const error = formError || wallet.error || data.error;
+  const notice = wallet.notice;
+  const connectWallet = wallet.connectWallet;
+  const refreshCampaigns = () => { void data.refresh(); };
+  const tx = transactions.transaction;
 
-  const getProvider = useCallback(async () => {
-    if (!window.ethereum) {
-      throw new Error("Please install MetaMask.");
-    }
-
-    const provider = new BrowserProvider(window.ethereum);
-
-    const network = await provider.getNetwork();
-
-    if (network.chainId !== CHAIN_ID) {
-      throw new Error("Switch MetaMask to Anvil Local (31337).");
-    }
-
-    return provider;
-  }, []);
-
-  const loadCampaigns = useCallback(
-    async (walletAddress: string) => {
-      const provider = await getProvider();
-
-      const contract = new Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
-
-      const count = Number(await contract.campaignCount());
-
-      const results = await Promise.all(
-        Array.from({ length: count }, async (_, index) => {
-          const id = index + 1;
-
-          const data = await contract.campaigns(id);
-
-          const contribution = await contract.contributions(id, walletAddress);
-
-          return {
-            id,
-            owner: data.owner as string,
-            goal: data.goal as bigint,
-            raised: data.amountRaised as bigint,
-            deadline: Number(data.deadline),
-            withdrawn: data.withdrawn as boolean,
-            contribution: contribution as bigint,
-          };
-        }),
-      );
-
-      setCampaigns(results.reverse());
-
-      const latestBlock = await provider.getBlock("latest");
-
-      if (!latestBlock) {
-        throw new Error("Cannot read latest Anvil block.");
-      }
-
-      setNow(latestBlock.timestamp * 1000);
-    },
-    [getProvider],
-  );
-
-  async function refreshCampaigns() {
-    if (!account || loading) return;
-
-    setLoading(true);
-    setError("");
-    setNotice("Refreshing campaigns...");
-
-    try {
-      await loadCampaigns(account);
-
-      setNotice("Campaigns refreshed successfully.");
-    } catch (err) {
-      setNotice("");
-      setError(getError(err));
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function connectWallet() {
-    if (loading) return;
-
-    setError("");
-    setNotice("");
-
-    try {
-      setLoading(true);
-
-      const provider = await getProvider();
-
-      const signer = await provider.getSigner();
-
-      const address = await signer.getAddress();
-
-      await loadCampaigns(address);
-
-      setAccount(address);
-
-      setNotice("Wallet connected successfully.");
-    } catch (err) {
-      setError(getError(err));
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function execute(
-    action: (contract: Contract) => Promise<ContractTransactionResponse>,
-    successMessage: string,
-  ): Promise<boolean> {
-    if (!account || loading) return false;
-
-    setLoading(true);
-    setError("");
-    setNotice("Waiting for MetaMask confirmation...");
-
-    try {
-      const provider = await getProvider();
-
-      const signer = await provider.getSigner();
-
-      const address = await signer.getAddress();
-
-      if (address.toLowerCase() !== account.toLowerCase()) {
-        throw new Error(
-          "Wallet account changed. Please reconnect your wallet.",
-        );
-      }
-
-      const contract = new Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
-
-      const tx = await action(contract);
-
-      setNotice("Transaction submitted. Waiting for confirmation...");
-
-      const receipt = await tx.wait();
-
-      if (!receipt || receipt.status !== 1) {
-        throw new Error("Transaction failed.");
-      }
-
-      await loadCampaigns(address);
-
-      setNotice(successMessage);
-
-      return true;
-    } catch (err) {
-      setNotice("");
-      setError(getError(err));
-
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function createCampaign(event: React.FormEvent) {
+  async function createCampaign(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
+    setError("");
     const duration = Number(days);
-
-    if (!goal || !/^\d+(\.\d+)?$/.test(goal)) {
-      setError("Enter a valid funding goal.");
-      return;
-    }
-
+    if (!goal || !/^\d+(\.\d+)?$/.test(goal)) { setError("Enter a valid funding goal."); return; }
     let goalWei: bigint;
-
-    try {
-      goalWei = parseEther(goal);
-    } catch {
-      setError("Enter a valid ETH amount.");
-      return;
-    }
-
-    if (goalWei <= 0n) {
-      setError("Funding goal must be greater than zero.");
-      return;
-    }
-
+    try { goalWei = parseEther(goal); }
+    catch { setError("Enter a valid ETH amount."); return; }
+    if (goalWei <= 0n) { setError("Funding goal must be greater than zero."); return; }
     if (!Number.isSafeInteger(duration) || duration < 1 || duration > 3650) {
-      setError("Enter a duration between 1 and 3650 days.");
-      return;
+      setError("Enter a duration between 1 and 3650 days."); return;
     }
-
-    const success = await execute(
-      (contract) => contract.createCampaign(goalWei, BigInt(duration) * 86400n),
-      "Campaign created successfully!",
-    );
-
-    if (success) {
-      setGoal("");
-      setDays("");
+    if (await transactions.execute({ method: "createCampaign", args: [goalWei, BigInt(duration) * 86400n], label: "Create campaign" })) {
+      setGoal(""); setDays("");
     }
   }
 
   async function contribute(id: number) {
-    const value = amounts[id] || "";
-
+    setError("");
     let wei: bigint;
+    try { wei = parseEther(amounts[id] || ""); }
+    catch { setError("Enter a valid contribution amount."); return; }
+    if (wei <= 0n) { setError("Contribution must be greater than zero."); return; }
+    if (await transactions.execute({ method: "contribute", args: [id], value: wei, label: `Contribute to campaign #${id}` })) {
+      setAmounts(previous => ({ ...previous, [id]: "" }));
+    }
+  }
 
+  async function settle(id: number, refund: boolean) {
+    setError("");
     try {
-      wei = parseEther(value);
-    } catch {
-      setError("Enter a valid contribution amount.");
-      return;
-    }
-
-    if (wei <= 0n) {
-      setError("Contribution must be greater than zero.");
-      return;
-    }
-
-    const success = await execute(
-      (contract) =>
-        contract.contribute(id, {
-          value: wei,
-        }),
-      `Contribution to campaign #${id} confirmed!`,
-    );
-
-    if (success) {
-      setAmounts((previous) => ({
-        ...previous,
-        [id]: "",
-      }));
-    }
+      const recipient = payoutRecipient(recipients[id] || "", wallet.session?.config.address);
+      const method = refund ? (recipient ? "refundTo" : "refund") : (recipient ? "withdrawTo" : "withdraw");
+      await transactions.execute({ method, args: recipient ? [id, recipient] : [id],
+        label: `${refund ? "Refund" : "Withdraw"} campaign #${id}${recipient ? ` to ${recipient}` : ""}` });
+    } catch (error) { setError(getError(error)); }
   }
-
-  async function withdraw(id: number) {
-    await execute(
-      (contract) => contract.withdraw(id),
-      `Campaign #${id} funds withdrawn successfully!`,
-    );
-  }
-
-  async function refund(id: number) {
-    await execute(
-      (contract) => contract.refund(id),
-      `Refund for campaign #${id} completed!`,
-    );
-  }
-
-  useEffect(() => {
-    if (!account || loading) return;
-
-    const interval = setInterval(() => {
-      loadCampaigns(account).catch((err) => {
-        setError(getError(err));
-      });
-    }, 10000);
-
-    return () => clearInterval(interval);
-  }, [account, loading, loadCampaigns]);
-
-  useEffect(() => {
-    if (!window.ethereum?.on) return;
-
-    const handleChange = () => {
-      setAccount("");
-      setCampaigns([]);
-      setNow(null);
-      setError("");
-      setNotice("Wallet changed. Please reconnect.");
-    };
-
-    window.ethereum.on("accountsChanged", handleChange);
-    window.ethereum.on("chainChanged", handleChange);
-
-    return () => {
-      window.ethereum?.removeListener?.("accountsChanged", handleChange);
-
-      window.ethereum?.removeListener?.("chainChanged", handleChange);
-    };
-  }, []);
 
   const totalRaised = campaigns.reduce(
     (sum, campaign) => sum + campaign.raised,
@@ -373,11 +102,11 @@ function App() {
         <button
           className="wallet-button"
           onClick={connectWallet}
-          disabled={loading}
+          disabled={wallet.connecting}
         >
           {account ? (
             <>● {shortAddress(account)}</>
-          ) : loading ? (
+          ) : wallet.connecting ? (
             "Connecting..."
           ) : (
             "Connect Wallet"
@@ -422,8 +151,27 @@ function App() {
           </div>
         </section>
 
+        {tx && (
+          <section className={`notice ${tx.status === "confirmed" ? "success" : "transaction"}`} aria-label="Latest transaction" role="status">
+            <strong>{tx.label}: {tx.status.replaceAll("-", " ")}</strong>
+            <p className="transaction-context">Account: {tx.account} · Chain ID: {tx.chainId.toString()}</p>
+            {tx.hash && <p className="transaction-context">Transaction hash: {tx.hash}</p>}
+            {tx.error && <p role="alert">{tx.error}</p>}
+            {tx.refreshWarning && <p>{tx.refreshWarning}</p>}
+            {tx.status === "tracking-unavailable" && !tx.manualReview && (
+              <button className="secondary-button" disabled={transactions.working} onClick={() => transactions.retryTracking()}>Check transaction status</button>
+            )}
+            {tx.manualReview && (
+              <>
+                <p>Only continue after checking wallet history and confirming the requested action was not sent.</p>
+                <button className="secondary-button" disabled={transactions.working} onClick={transactions.acknowledgeUnsent}>I verified the action was not sent</button>
+              </>
+            )}
+          </section>
+        )}
+
         {notice && (
-          <div className="notice success" role="status">
+          <div className={`notice ${account ? "success" : "transaction"}`} role="status">
             {notice}
           </div>
         )}
@@ -459,9 +207,9 @@ function App() {
           <div className="stat-card">
             <span>Network</span>
 
-            <strong>Anvil Local</strong>
+            <strong>{NETWORK_NAME}</strong>
 
-            <small>Chain ID: 31337</small>
+            <small>Chain ID: {CHAIN_ID_TEXT}</small>
           </div>
         </section>
 
@@ -479,10 +227,10 @@ function App() {
               {account && (
                 <button
                   className="secondary-button"
-                  disabled={loading}
+                  disabled={loading || data.refreshing}
                   onClick={refreshCampaigns}
                 >
-                  {loading ? "↻ Refreshing..." : "↻ Refresh"}
+                  {data.refreshing ? "↻ Refreshing..." : "↻ Refresh"}
                 </button>
               )}
             </div>
@@ -501,10 +249,15 @@ function App() {
                 <button
                   className="primary-button"
                   onClick={connectWallet}
-                  disabled={loading}
+                  disabled={wallet.connecting}
                 >
-                  {loading ? "Connecting..." : "Connect Wallet"}
+                  {wallet.connecting ? "Connecting..." : "Connect Wallet"}
                 </button>
+              </div>
+            ) : !data.snapshot ? (
+              <div className="empty-state" role="status">
+                <h3>{data.error ? "Campaigns could not be loaded" : "Loading campaigns..."}</h3>
+                {data.error && <button className="secondary-button" disabled={data.refreshing} onClick={refreshCampaigns}>Retry campaign load</button>}
               </div>
             ) : campaigns.length === 0 ? (
               <div className="empty-state">
@@ -593,7 +346,7 @@ function App() {
                           <span>
                             {ended
                               ? "Campaign ended"
-                              : `Ends ${new Date(
+                              : !Number.isFinite(campaign.deadline) ? "Deadline beyond display range" : `Ends ${new Date(
                                   campaign.deadline * 1000,
                                 ).toLocaleDateString("en-GB", {
                                   day: "2-digit",
@@ -631,11 +384,22 @@ function App() {
                           </div>
                         )}
 
+                        {(canWithdraw || canRefund) && (
+                          <div className="recovery-recipient">
+                            <label htmlFor={`recipient-${campaign.id}`}>Optional payout recipient</label>
+                            <input id={`recipient-${campaign.id}`} type="text" placeholder="Leave empty to receive in your wallet"
+                              value={recipients[campaign.id] || ""} disabled={loading}
+                              onChange={event => setRecipients(previous => ({ ...previous, [campaign.id]: event.target.value }))} />
+                            <p>Redirects only your own eligible funds. Contract wallets must be able to authorize the claim.</p>
+                            {recipients[campaign.id]?.trim() && <p>Send {formatEther(canWithdraw ? campaign.raised : campaign.contribution)} ETH to {recipients[campaign.id].trim()}</p>}
+                          </div>
+                        )}
+
                         {canWithdraw && (
                           <button
                             className="primary-button full-width"
                             disabled={loading}
-                            onClick={() => withdraw(campaign.id)}
+                            onClick={() => settle(campaign.id, false)}
                           >
                             Withdraw Funds
                           </button>
@@ -645,7 +409,7 @@ function App() {
                           <button
                             className="secondary-button full-width"
                             disabled={loading}
-                            onClick={() => refund(campaign.id)}
+                            onClick={() => settle(campaign.id, true)}
                           >
                             Claim Refund ({formatEther(campaign.contribution)}{" "}
                             ETH)
@@ -725,7 +489,7 @@ function App() {
               <div>
                 <strong>Powered by Smart Contracts</strong>
 
-                <p>Transactions are executed on your local Anvil blockchain.</p>
+                <p>Transactions use your verified FundChain deployment.</p>
               </div>
             </div>
           </aside>

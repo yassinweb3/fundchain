@@ -301,13 +301,16 @@ forge create src/Crowdfunding.sol:Crowdfunding \
   --broadcast
 ```
 
-After deployment, update the contract address used by the frontend in:
+After deployment, set `VITE_CONTRACT_ADDRESS` in an ignored local configuration file:
 
 ```text
-frontend/src/contract.ts
+frontend/.env.local
 ```
 
 ---
+
+The frontend checks the deployed runtime against the reviewed Phase 2 artifact.
+See [frontend setup and verification](frontend/README.md) for ABI generation and tests.
 
 ### 7. Configure MetaMask
 

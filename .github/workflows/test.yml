@@ -38,8 +38,17 @@ jobs:
       - name: Run security, fuzz, and invariant tests
         run: forge test -vv
 
+      - name: Share reviewed contract artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: crowdfunding-contract
+          path: out/Crowdfunding.sol/Crowdfunding.json
+          if-no-files-found: error
+          retention-days: 1
+
   frontend:
     name: Frontend
+    needs: smart-contract
     runs-on: ubuntu-24.04
 
     permissions:
@@ -52,6 +61,12 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Download reviewed contract artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: crowdfunding-contract
+          path: out/Crowdfunding.sol
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -74,6 +89,12 @@ jobs:
 
       - name: Check dependency tree
         run: npm ls
+
+      - name: Verify frontend contract ABI and runtime identity
+        run: npm run contract:check
+
+      - name: Test wallet and transaction reliability
+        run: npm test
 
       - name: Check security audit against temporary exception
         shell: bash

@@ -1,5 +1,25 @@
 @import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap");
 
+.notice.transaction {
+  background: #151e33;
+  border: 1px solid #566c94;
+}
+
+.transaction-context, .recovery-recipient p {
+  overflow-wrap: anywhere;
+  line-height: 1.6;
+}
+
+.recovery-recipient {
+  margin-bottom: 16px;
+  font-size: 12px;
+}
+
+.recovery-recipient label {
+  display: block;
+  margin-bottom: 8px;
+}
+
 :root {
   font-family: "DM Sans", sans-serif;
   color: #f4f6fb;
