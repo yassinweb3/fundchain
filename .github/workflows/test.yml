@@ -12,6 +12,9 @@ jobs:
     name: Smart Contract
     runs-on: ubuntu-24.04
 
+    env:
+      FOUNDRY_PROFILE: security
+
     permissions:
       contents: read
 
@@ -32,7 +35,7 @@ jobs:
       - name: Build contracts
         run: forge build --sizes
 
-      - name: Run tests
+      - name: Run security, fuzz, and invariant tests
         run: forge test -vv
 
   frontend:

@@ -25,7 +25,7 @@ contract Crowdfunding {
     // The money was already withdrawn
     error AlreadyWithdrawn();
 
-    // Sending ETH to the owner failed
+    // Sending withdrawal ETH failed
     error TransferFailed();
 
     // The campaign is still active
@@ -46,6 +46,9 @@ contract Crowdfunding {
     // The duration cannot be zero
     error InvalidDuration();
 
+    // A payout cannot be sent to the zero address or this contract
+    error InvalidRecipient();
+
     // ==========================================
     // Events
     // ==========================================
@@ -61,6 +64,11 @@ contract Crowdfunding {
 
     // This event is emitted when a contributor gets a refund
     event Refunded(uint256 indexed campaignId, address indexed contributor, uint256 amount);
+
+    // Existing settlement events identify the claimant; this records a different destination
+    event PayoutRedirected(
+        uint256 indexed campaignId, address indexed claimant, address indexed recipient, uint256 amount, bool isRefund
+    );
 
     // ==========================================
     // Campaign Struct
@@ -154,6 +162,16 @@ contract Crowdfunding {
     // ==========================================
 
     function withdraw(uint256 _campaignId) external {
+        _withdraw(_campaignId, payable(msg.sender));
+    }
+
+    /// @notice Withdraw to a chosen recipient. Only the campaign owner can authorize payment.
+    /// @dev Does not change ownership or permit recovery from older immutable deployments.
+    function withdrawTo(uint256 _campaignId, address payable recipient) external {
+        _withdraw(_campaignId, recipient);
+    }
+
+    function _withdraw(uint256 _campaignId, address payable recipient) internal {
         // Check if the campaign exists
         if (_campaignId == 0 || _campaignId > campaignCount) {
             revert CampaignDoesNotExist();
@@ -182,6 +200,8 @@ contract Crowdfunding {
             revert AlreadyWithdrawn();
         }
 
+        _validateRecipient(recipient);
+
         // Save the amount before sending it
         uint256 amount = campaign.amountRaised;
 
@@ -197,13 +217,16 @@ contract Crowdfunding {
         // If the transaction reverts later,
         // this event will also be removed
         emit Withdrawn(_campaignId, campaign.owner, amount);
+        if (recipient != msg.sender) {
+            emit PayoutRedirected(_campaignId, msg.sender, recipient, amount, false);
+        }
 
         // ======================================
         // Interaction
         // ======================================
 
-        // Send the campaign money to the owner
-        (bool success,) = payable(campaign.owner).call{value: amount}("");
+        // Send only this campaign's entitlement to the owner's chosen destination
+        (bool success,) = recipient.call{value: amount}("");
 
         // Stop if the ETH transfer failed
         if (!success) {
@@ -216,6 +239,16 @@ contract Crowdfunding {
     // ==========================================
 
     function refund(uint256 _campaignId) external {
+        _refund(_campaignId, payable(msg.sender));
+    }
+
+    /// @notice Refund only the caller's contribution to a chosen recipient.
+    /// @dev A contract claimant must be able to invoke this function to redirect its refund.
+    function refundTo(uint256 _campaignId, address payable recipient) external {
+        _refund(_campaignId, recipient);
+    }
+
+    function _refund(uint256 _campaignId, address payable recipient) internal {
         // Check if the campaign exists
         if (_campaignId == 0 || _campaignId > campaignCount) {
             revert CampaignDoesNotExist();
@@ -242,6 +275,8 @@ contract Crowdfunding {
             revert NothingToRefund();
         }
 
+        _validateRecipient(recipient);
+
         // ======================================
         // Effects
         // ======================================
@@ -257,17 +292,26 @@ contract Crowdfunding {
         // If the transaction reverts later,
         // this event will also be removed
         emit Refunded(_campaignId, msg.sender, amount);
+        if (recipient != msg.sender) {
+            emit PayoutRedirected(_campaignId, msg.sender, recipient, amount, true);
+        }
 
         // ======================================
         // Interaction
         // ======================================
 
-        // Send the ETH back to the contributor
-        (bool success,) = payable(msg.sender).call{value: amount}("");
+        // The contributor remains the claimant even when a different address receives the ETH
+        (bool success,) = recipient.call{value: amount}("");
 
         // Stop if the refund failed
         if (!success) {
             revert RefundFailed();
+        }
+    }
+
+    function _validateRecipient(address recipient) private view {
+        if (recipient == address(0) || recipient == address(this)) {
+            revert InvalidRecipient();
         }
     }
 }
