@@ -11,7 +11,8 @@
     "test": "vitest run",
     "contract:sync": "node scripts/sync-contract.mjs",
     "contract:check": "node scripts/sync-contract.mjs --check",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "check:bundle": "node scripts/check-bundle.mjs"
   },
   "dependencies": {
     "ethers": "^6.17.0",

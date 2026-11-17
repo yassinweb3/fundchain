@@ -256,7 +256,7 @@ button:disabled {
   justify-content: center;
   gap: 8px;
   border: 0;
-  background: linear-gradient(135deg, #806cff, #624ce8);
+  background: linear-gradient(135deg, #6f55df, #624ce8);
   color: white;
   border-radius: 10px;
   padding: 13px 20px;
@@ -976,4 +976,30 @@ input:focus {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* Keyboard access, resilient monetary/address layout, and page controls. */
+:where(button, a, input):focus-visible {
+  outline: 3px solid #b7aaff;
+  outline-offset: 3px;
+}
+.skip-link { position: fixed; left: 16px; top: -100px; z-index: 100; background: #151e33; padding: 12px; }
+.skip-link:focus { top: 12px; }
+.pagination { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 24px; }
+.pagination span { flex: 1 1 160px; }
+.data-freshness { color: #b6c1d4; font-size: 13px; }
+.funding-row, .campaign-details { flex-wrap: wrap; }
+.funding-row > *, .stat-card strong, .testnet { overflow-wrap: anywhere; min-width: 0; }
+.header .brand { min-width: 0; }
+button, .primary-link { min-height: 44px; }
+.owner, .campaign-id, .campaign-details, .funding-row span,
+.stat-card > span, .stat-card small, .section-heading p, .create-panel > p,
+.security-note p, .empty-state p, .footer { color: #b6c1d4; }
+input::placeholder { color: #a8b5cb; }
+[aria-invalid="true"] { border-color: #ff9eab; }
+@media (max-width: 430px) {
+ .brand { gap: 7px; }
+ .brand-icon { width: 28px; height: 28px; flex-shrink: 0; }
+ .wallet-button { flex-shrink: 0; }
+ .funding-row { align-items: flex-start; }
 }

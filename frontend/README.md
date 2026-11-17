@@ -8,6 +8,7 @@ npm.cmd ci
 npm.cmd test
 npm.cmd run lint
 npm.cmd run build
+npm.cmd run check:bundle
 ```
 
 Tests require the current `out/Crowdfunding.sol/Crowdfunding.json` artifact. Build
@@ -62,6 +63,44 @@ contract wallets must expose a supported way to authorize the call.
 
 Automated tests use controlled EIP-1193 RPC responses and React component tests.
 They do not constitute a real MetaMask signing session or a public-network test.
-Campaign reads have bounded concurrency but still load all campaigns; pagination
-remains a separate improvement. Existing moderate tooling findings are governed
+Campaign reads are bounded to 12 campaigns per page (at most 25 contract calls,
+plus block and identity requests). Every page snapshot uses a single block. Existing moderate tooling findings are governed
 by the root `TOOLING_RISK_EXCEPTION.md`; do not bypass its audit policy.
+
+## Architecture and pagination
+
+The entry shell has no runtime wallet/ethers imports. Connect Wallet loads the
+workspace with a visible loading state and retry on load failure. No wallet
+connection is requested until that module is available. Once mounted, the
+workspace keeps wallet, campaign, and transaction controllers above session-keyed
+forms; paging cannot unmount transaction tracking.
+
+Campaign IDs descend from a stable page boundary. Refresh and background polling
+keep that boundary even when new campaigns appear. Previous/Next navigate at most
+12 campaigns; View newest campaigns explicitly discovers recent campaigns.
+Account/network changes reset pagination and drafts. A slow old page/session
+response cannot replace current data. Polling pauses while the tab is hidden;
+returning triggers a deduplicated refresh. Confirmation always requests a fresh
+snapshot of the current page. Stale snapshots remain visible with a warning on
+refresh failure. A newly created campaign is available through View newest
+campaigns, without silently moving the page being reviewed.
+
+Total Campaigns is the global on-chain count. Current funds on this page sums only
+the displayed campaigns, using bigint formatting; refunds decrease this amount.
+It is not lifetime fundraising or the contract's ETH balance.
+
+## Performance and accessibility checks
+
+Build output includes a manifest. `npm.cmd run check:bundle` traverses static entry
+imports (excluding dynamic imports) and enforces 100,000 bytes initial gzip,
+190,000 bytes total JavaScript gzip, and 500,000 bytes per minified JS chunk.
+CI runs the same budget check. Splitting delays wallet code; it does not eliminate
+the eventual download. Gzip sizes are reproducible build estimates, not a browser
+latency benchmark.
+
+Forms provide associated errors and move focus to invalid fields. Campaign
+progress has an accessible name/value, refresh failures do not hide form errors,
+and controls have visible keyboard focus. Responsive layout and reduced-motion
+styles are retained. Automated jsdom tests do not verify rendered contrast or
+layout. Final manual checks require a connected browser: keyboard-only use,
+320/375/768/1280 px widths, long addresses/amounts, and 4.5:1 normal-text contrast.

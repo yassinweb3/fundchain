@@ -10,7 +10,8 @@ export type InjectedWallet = Eip1193Provider & {
 export type Connection = { account: string; chainId: bigint; injected: InjectedWallet; provider: BrowserProvider; config: Deployment };
 export type Session = Connection & { id: number };
 export type Campaign = { id: number; owner: string; goal: bigint; raised: bigint; deadline: number; withdrawn: boolean; contribution: bigint };
-export type CampaignSnapshot = { campaigns: Campaign[]; now: number };
+export const PAGE_SIZE = 12;
+export type CampaignSnapshot = { total: number; start: number; campaigns: Campaign[]; now: number };
 export type Intent = {
   method: "createCampaign" | "contribute" | "withdraw" | "refund" | "withdrawTo" | "refundTo";
   args: (string | number | bigint)[];
@@ -63,7 +64,7 @@ async function assertIdentity(session: Connection): Promise<void> {
   }
 }
 
-export async function readCampaigns(session: Session): Promise<CampaignSnapshot> {
+export async function readCampaigns(session: Session, start: number | null = null): Promise<CampaignSnapshot> {
   await assertIdentity(session);
   const block = await session.provider.getBlock("latest");
   if (!block) throw new Error("Cannot read the latest blockchain block.");
@@ -72,19 +73,19 @@ export async function readCampaigns(session: Session): Promise<CampaignSnapshot>
   const rawCount: bigint = await contract.campaignCount(overrides);
   if (rawCount > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error("Campaign count exceeds the supported range.");
   const campaigns: Campaign[] = [];
-  // Bound concurrent RPC requests; pagination remains a separate scalability improvement.
-  for (let offset = Number(rawCount); offset > 0; offset -= 20) {
-    const batch = Array.from({ length: Math.min(20, offset) }, (_, i) => offset - i);
-    campaigns.push(...await Promise.all(batch.map(async id => {
-      const [data, contribution] = await Promise.all([contract.campaigns(id, overrides), contract.contributions(id, session.account, overrides)]);
-      const deadline: bigint = data.deadline;
-      return { id, owner: getAddress(data.owner), goal: data.goal as bigint, raised: data.amountRaised as bigint,
-        deadline: deadline <= 8_640_000_000_000n ? Number(deadline) : Infinity,
-        withdrawn: data.withdrawn as boolean, contribution: contribution as bigint };
-    })));
-  }
+  const total = Number(rawCount);
+  if (start !== null && (!Number.isSafeInteger(start) || start < 0)) throw new Error("Invalid campaign page.");
+  const first = Math.min(start ?? total, total);
+  const ids = Array.from({ length: Math.min(PAGE_SIZE, first) }, (_, i) => first - i);
+  campaigns.push(...await Promise.all(ids.map(async id => {
+    const [data, contribution] = await Promise.all([contract.campaigns(id, overrides), contract.contributions(id, session.account, overrides)]);
+    const deadline: bigint = data.deadline;
+    return { id, owner: getAddress(data.owner), goal: data.goal as bigint, raised: data.amountRaised as bigint,
+      deadline: deadline <= 8_640_000_000_000n ? Number(deadline) : Infinity,
+      withdrawn: data.withdrawn as boolean, contribution: contribution as bigint };
+  })));
   await assertIdentity(session);
-  return { campaigns, now: block.timestamp * 1000 };
+  return { total, start: first, campaigns, now: block.timestamp * 1000 };
 }
 
 export async function prepare(session: Session, intent: Intent): Promise<Prepared> {

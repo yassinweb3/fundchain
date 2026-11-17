@@ -37,7 +37,7 @@ export function submitted(overrides: Partial<Submitted> = {}): Submitted {
 export function services(): WalletServices {
   return {
     connect: vi.fn<WalletServices["connect"]>().mockImplementation(async injected => connection({ injected })),
-    readCampaigns: vi.fn<WalletServices["readCampaigns"]>().mockResolvedValue({ campaigns: [], now: 1000 }),
+    readCampaigns: vi.fn<WalletServices["readCampaigns"]>().mockResolvedValue({ total: 0, start: 0, campaigns: [], now: 1000 }),
     prepare: vi.fn<WalletServices["prepare"]>().mockImplementation(async (current, intent) => {
       const expected = { from: current.account, to: current.config.address, chainId: current.chainId,
         data: contractInterface.encodeFunctionData(intent.method, intent.args), value: intent.value ?? 0n };

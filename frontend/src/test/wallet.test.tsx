@@ -87,7 +87,7 @@ describe("campaign reads", () => {
   });
   it("never commits old-account data after switching sessions", async () => {
     const api = services(); const old = deferred<CampaignSnapshot>();
-    vi.mocked(api.readCampaigns).mockReturnValueOnce(old.promise).mockResolvedValue({ campaigns: [], now: 222 });
+    vi.mocked(api.readCampaigns).mockReturnValueOnce(old.promise).mockResolvedValue({ total: 1, start: 1, campaigns: [], now: 222 });
     let active = session();
     const isCurrent = (value: Session) => value.id === active.id;
     const { result, rerender } = renderHook(({ current }) => useCampaigns(current, isCurrent, api), { initialProps: { current: active } });
@@ -95,7 +95,7 @@ describe("campaign reads", () => {
     act(() => { first = result.current.refresh(); });
     active = session(2, BOB); rerender({ current: active });
     await act(async () => { await result.current.refresh(); });
-    await act(async () => { old.resolve({ campaigns: [], now: 111 }); await first; });
+    await act(async () => { old.resolve({ total: 1, start: 1, campaigns: [], now: 111 }); await first; });
     expect(result.current.snapshot?.now).toBe(222);
   });
 
@@ -108,7 +108,7 @@ describe("campaign reads", () => {
     act(() => { first = result.current.refresh(); second = result.current.refresh(); });
     expect(first).toBe(second);
     expect(api.readCampaigns).toHaveBeenCalledTimes(1);
-    await act(async () => { pending.resolve({ campaigns: [], now: 123 }); await first; });
+    await act(async () => { pending.resolve({ total: 1, start: 1, campaigns: [], now: 123 }); await first; });
     vi.mocked(api.readCampaigns).mockRejectedValue(new Error("RPC unavailable"));
     await act(async () => { await result.current.refresh(); });
     expect(result.current.snapshot?.now).toBe(123);
@@ -123,7 +123,7 @@ describe("campaign reads", () => {
     await act(async () => { await vi.advanceTimersByTimeAsync(30_000); });
     expect(api.readCampaigns).toHaveBeenCalledTimes(1);
     unmount();
-    await act(async () => { pending.resolve({ campaigns: [], now: 123 }); await vi.advanceTimersByTimeAsync(30_000); });
+    await act(async () => { pending.resolve({ total: 1, start: 1, campaigns: [], now: 123 }); await vi.advanceTimersByTimeAsync(30_000); });
     expect(api.readCampaigns).toHaveBeenCalledTimes(1);
   });
 
@@ -137,13 +137,13 @@ describe("campaign reads", () => {
   it("starts a fresh read after confirmation instead of joining a pre-confirmation read", async () => {
     vi.useFakeTimers();
     const api = services(); const old = deferred<CampaignSnapshot>();
-    vi.mocked(api.readCampaigns).mockReturnValueOnce(old.promise).mockResolvedValue({ campaigns: [], now: 222 });
+    vi.mocked(api.readCampaigns).mockReturnValueOnce(old.promise).mockResolvedValue({ total: 1, start: 1, campaigns: [], now: 222 });
     const active = session(); const current = () => true;
     const { result } = renderHook(() => useCampaigns(active, current, api));
     let before!: Promise<boolean>; let after!: Promise<boolean>;
     act(() => { before = result.current.refresh(); after = result.current.refreshAfterTransaction(); });
     expect(api.readCampaigns).toHaveBeenCalledTimes(1);
-    await act(async () => { old.resolve({ campaigns: [], now: 111 }); await before; await after; });
+    await act(async () => { old.resolve({ total: 1, start: 1, campaigns: [], now: 111 }); await before; await after; });
     expect(api.readCampaigns).toHaveBeenCalledTimes(2);
     expect(result.current.snapshot?.now).toBe(222);
   });

@@ -1,3 +1,4 @@
+import { StrictMode } from "react";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { parseEther, ZeroAddress } from "ethers";
@@ -11,7 +12,7 @@ const campaign: Campaign = { id: 1, owner: ALICE, goal: parseEther("1"), raised:
 async function connected(successful = true) {
   const injected = new WalletStub(); window.ethereum = injected;
   const api = services();
-  vi.mocked(api.readCampaigns).mockResolvedValue({ campaigns: [{ ...campaign, goal: parseEther(successful ? "1" : "2") }], now: 2000 });
+  vi.mocked(api.readCampaigns).mockResolvedValue({ total: 1, start: 1, campaigns: [{ ...campaign, goal: parseEther(successful ? "1" : "2") }], now: 2000 });
   render(<App services={api} />);
   fireEvent.click(screen.getAllByRole("button", { name: "Connect Wallet" })[0]);
   await screen.findByText("Campaign #1");
@@ -81,4 +82,26 @@ it("clears confirmed form input even when the campaign refresh fails", async () 
   await screen.findByText(/Transaction confirmed, but campaign refresh failed/);
   expect((screen.getByLabelText("Funding Goal (ETH)") as HTMLInputElement).value).toBe("");
   expect(screen.getByText(/Create campaign: confirmed/)).toBeTruthy();
+});
+
+it("keeps stale-data warnings visible alongside independent form errors", async () => {
+ const { api } = await connected();
+ vi.mocked(api.readCampaigns).mockRejectedValue(new Error("RPC unavailable"));
+ fireEvent.click(screen.getByRole("button", { name: /Refresh/ }));
+ await screen.findByText(/Campaign data may be out of date/);
+ fireEvent.change(screen.getByLabelText("Optional payout recipient"), { target: { value: "invalid" } });
+ fireEvent.click(screen.getByRole("button", { name: "Withdraw Funds" }));
+ expect(screen.getAllByRole("alert")).toHaveLength(2);
+ expect(screen.getByText("Campaign #1")).toBeTruthy();
+ expect(document.activeElement).toBe(screen.getByLabelText("Optional payout recipient"));
+ expect(screen.getByLabelText("Optional payout recipient").getAttribute("aria-invalid")).toBe("true");
+});
+
+it("connects once when a lazy workspace mounts under Strict Mode", async () => {
+ window.ethereum = new WalletStub();
+ const api = services();
+ render(<StrictMode><App services={api} /></StrictMode>);
+ fireEvent.click(screen.getAllByRole("button", { name: "Connect Wallet" })[0]);
+ await screen.findByText("No campaigns yet");
+ expect(api.connect).toHaveBeenCalledTimes(1);
 });
