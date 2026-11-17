@@ -462,3 +462,9 @@ Computer Science graduate and developer focused on Frontend and Web3 development
 FundChain is an educational and portfolio project.
 
 It currently uses a local development blockchain and test ETH. No real funds are required to run or test the application.
+
+### Sepolia deployment preparation
+
+See [the Sepolia runbook](DEPLOYMENT_SEPOLIA.md) for offline script validation,
+preflight checks, encrypted-keystore signing, bytecode verification, and recovery.
+Public deployment and wallet transactions require separate explicit approval.

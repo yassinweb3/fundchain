@@ -38,6 +38,14 @@ jobs:
       - name: Run security, fuzz, and invariant tests
         run: forge test -vv
 
+      - name: Validate deployment preflight without network or signing
+        run: |
+          python3 -B -m unittest discover -s tools/tests -v
+          python3 -B tools/sepolia_preflight.py --mode offline
+
+      - name: Simulate Sepolia deployment locally without RPC or signing
+        run: env -u ETH_RPC_URL -u FOUNDRY_ETH_RPC_URL -u FOUNDRY_FORK_URL forge script script/DeploySepolia.s.sol:DeploySepolia --chain 11155111 --offline --sig "run(address)" 0x1111111111111111111111111111111111111111
+
       - name: Share reviewed contract artifact
         uses: actions/upload-artifact@v4
         with:
