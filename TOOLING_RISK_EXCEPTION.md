@@ -2,7 +2,7 @@
 
 Status: approved for this scoped baseline; not a permanent waiver.
 Owner: repository maintainer.
-Reviewed: November 13, 2026.
+Reviewed: November 20, 2026.
 Expires: December 13, 2026, end of day Asia/Riyadh
 (`2026-12-14T00:00:00+03:00`). Renewal requires explicit review and approval.
 
@@ -10,13 +10,12 @@ Expires: December 13, 2026, end of day Asia/Riyadh
 
 Advisory: [GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249).
 Installed minimatch 10.2.6 can consume excessive CPU/memory when processing
-attacker-controlled glob patterns. The audit reports ten moderate affected
+attacker-controlled glob patterns. The current audit reports nine moderate affected
 package entries, all arising from this one advisory:
 
 - minimatch
 - @eslint/config-array
 - eslint
-- @eslint/js
 - @typescript-eslint/typescript-estree
 - @typescript-eslint/parser
 - @typescript-eslint/type-utils
@@ -31,9 +30,15 @@ Do not expose CI secrets to untrusted code or run unreviewed configurations loca
 
 The verified baseline has zero high/critical audit entries after updating Vite to
 8.3.3, source-map-js to 1.2.2, and Zod to 4.6.6. ESLint 10.11.0 and
-TypeScript-ESLint 8.70.1 remain unchanged. Registry inspection on the review date
-found no patched minimatch 10.x; installed parents require 10.x. The patched
-minimatch 11.0.1 is outside those ranges. A forced major override or automated
+TypeScript-ESLint 8.70.1 remain unchanged. The installed minimatch remains 10.2.6; the advisory lists 11.0.1 as patched.
+The November 20 audit now reports fixes available for all nine entries. This
+changes the earlier remediation assessment: review compatible parent-package
+updates and their lockfile diff in a separate dependency change, then rerun all
+checks. No dependency remediation was applied during this final review. Registry metadata
+identifies ESLint 10.15.0 (minimatch ^11.0.5) and TypeScript-ESLint 8.73.0 as
+follow-up candidates; their Node engine ranges admit Node 24.15.0, but the
+combined dependency tree and behavior still require installation approval and
+compatibility testing. `npm audit --omit=dev` currently reports zero findings. A forced major override or automated
 lint-tool downgrade is not authorized by this exception.
 
 ## Enforcement and exit criteria
@@ -59,9 +64,9 @@ The npm pin is installed explicitly by CI; packageManager alone is not enforceme
 Foundry's effective Osaka EVM target, disabled optimizer, and disabled via-IR are
 preserved. This is not approval to deploy to a network without Osaka support.
 
-Solidity formatting/build and 24 tests have passed in WSL Ubuntu. Frontend lint
-and production build have passed on Windows with the pinned Node/npm versions.
-WSL currently has no native Linux Node installation; its npm resolves to Windows.
-Native Linux frontend and hosted CI execution remain pending. Do not reuse Windows
-node_modules for a Linux frontend validation: run a separate Linux npm ci in an
-isolated checkout after obtaining installation approval where required.
+Verified on November 20, 2026: formatting/build and 82 Solidity tests pass under
+WSL Ubuntu with the security profile, including 1,000 runs per fuzz test and
+256 invariant runs of depth 128. The invariant group checks four properties.
+All 109 frontend tests, lint, ABI identity, production build, bundle budgets, and
+Chromium responsive tests pass on Windows. Hosted Linux execution is enforced
+by the workflow; its result must be checked for the final pushed commit.

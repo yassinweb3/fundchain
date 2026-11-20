@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import AppFrame from "./components/AppFrame";
+import type { WalletControls } from "./components/AppFrame";
 import CampaignStats from "./components/CampaignStats";
 import CampaignList from "./components/CampaignList";
 import CreateCampaignForm from "./components/CreateCampaignForm";
@@ -9,11 +9,16 @@ import { useCampaigns } from "./useCampaigns";
 import { useTransaction } from "./useTransaction";
 import type { WalletServices } from "./web3";
 import { walletServices } from "./web3";
-function WalletWorkspace({ services = walletServices }: {
+function WalletWorkspace({ services = walletServices, onControlsChange }: {
   services?: WalletServices;
+  onControlsChange?: (controls: WalletControls) => void;
 }) {
   const wallet = useWalletSession(services);
   const connectWallet = wallet.connectWallet;
+  const account = wallet.session?.account ?? "";
+  useEffect(() => {
+    onControlsChange?.({ account, connecting: wallet.connecting, onConnect: connectWallet });
+  }, [account, wallet.connecting, connectWallet, onControlsChange]);
   useEffect(() => {
     // Strict Mode may replay mount effects; cancel the first scheduled attempt.
     const timer = setTimeout(() => { void connectWallet(); }, 0);
@@ -21,8 +26,8 @@ function WalletWorkspace({ services = walletServices }: {
   }, [connectWallet]);
   const data = useCampaigns(wallet.session, wallet.isCurrent, services);
   const transactions = useTransaction(wallet, data.refreshAfterTransaction, services);
-  // Changing sessions remounts only the form/page drafts; transaction history stays above this key.
-  return <FundChainPage key={wallet.revision} wallet={wallet} data={data} transactions={transactions} />;
+  // Session changes reset only draft components, preserving the frame and transaction UI.
+  return <FundChainPage wallet={wallet} data={data} transactions={transactions} />;
 }
 type PageProps = {
   wallet: ReturnType<typeof useWalletSession>;
@@ -35,10 +40,9 @@ function FundChainPage({ wallet, data, transactions }: PageProps) {
   const loading = wallet.connecting || transactions.busy;
   const error = wallet.error;
   const notice = wallet.notice;
-  const connectWallet = wallet.connectWallet;
   const refreshCampaigns = () => { void data.refresh(); };
   const totalRaised = campaigns.reduce((sum, campaign) => sum + campaign.raised, 0n);
-  return (<AppFrame account={account} connecting={wallet.connecting} onConnect={connectWallet}>
+  return (<>
     <TransactionStatus transactions={transactions} />
 
     {notice && (<div className={`notice ${account ? "success" : "transaction"}`} role="status">
@@ -53,7 +57,7 @@ function FundChainPage({ wallet, data, transactions }: PageProps) {
 
     {data.error && <div className="notice error" role="alert">
       {data.snapshot ? "Campaign data may be out of date. " : ""}{data.error}
-      <button className="secondary-button" disabled={data.refreshing} onClick={refreshCampaigns}>Retry campaign load</button>
+      <button type="button" className="secondary-button" disabled={data.refreshing} onClick={refreshCampaigns}>Retry campaign load</button>
     </div>}
     {data.snapshot && <p className="data-freshness">Data at block time {new Date(data.snapshot.now).toLocaleTimeString()}{data.refreshing ? " - Refreshing..." : ""}</p>}
     <section className="content-layout">
@@ -67,16 +71,16 @@ function FundChainPage({ wallet, data, transactions }: PageProps) {
             <p>Support projects powered by Ethereum.</p>
           </div>
 
-          {account && (<button className="secondary-button" disabled={loading || data.refreshing} onClick={refreshCampaigns}>
+          {account && (<button type="button" className="secondary-button" disabled={loading || data.refreshing} onClick={refreshCampaigns}>
             {data.refreshing ? "↻ Refreshing..." : "↻ Refresh"}
           </button>)}
         </div>
 
-        <CampaignList wallet={wallet} data={data} transactions={transactions} />
+        <CampaignList key={wallet.revision} wallet={wallet} data={data} transactions={transactions} />
       </div>
 
-      <CreateCampaignForm account={account} loading={loading} execute={transactions.execute} />
+      <CreateCampaignForm key={wallet.revision} account={account} loading={loading} execute={transactions.execute} />
     </section>
-  </AppFrame>);
+  </>);
 }
 export default WalletWorkspace;

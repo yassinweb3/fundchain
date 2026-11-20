@@ -104,3 +104,24 @@ and controls have visible keyboard focus. Responsive layout and reduced-motion
 styles are retained. Automated jsdom tests do not verify rendered contrast or
 layout. Final manual checks require a connected browser: keyboard-only use,
 320/375/768/1280 px widths, long addresses/amounts, and 4.5:1 normal-text contrast.
+
+## Responsive browser checks
+
+After `npm.cmd ci`, install the pinned test browser once with
+`npx.cmd playwright install chromium`, then run `npm.cmd run test:responsive`.
+On Linux, use `npm`/`npx`; Chromium's system libraries must be available.
+Build the pinned Solidity artifact first as described above.
+
+The Chromium suite checks 320, 375, 430, 768, 1024, 1440, and 1920 CSS-pixel
+widths, plus 200% text. It checks horizontal overflow, content bounds, 44px touch
+targets, keyboard skip navigation, hero scaling, card columns, and header layout.
+Fixtures include connected/disconnected wallets, unusually long ETH values,
+payout recipient previews, and loading/empty/error states. The injected wallet
+is mocked, signing methods fail closed, and external HTTP requests are blocked.
+No real wallet connection or transaction is required.
+
+Full-page PNGs are attached to `frontend/playwright-report/index.html` and saved
+under `frontend/test-results/` (both ignored). These are review artifacts;
+geometry assertions provide automated layout regression checks, rather than
+platform-dependent pixel-golden comparisons. Chromium desktop emulation does
+not replace manual Safari/iOS, Android, or real MetaMask validation.

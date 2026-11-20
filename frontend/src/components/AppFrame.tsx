@@ -1,5 +1,10 @@
 import type { ReactNode } from "react";
 import heroImage from "../assets/hero.png";
+export type WalletControls = {
+  account: string;
+  connecting: boolean;
+  onConnect: () => void;
+};
 const NETWORK_NAME = import.meta.env.VITE_NETWORK_NAME ?? "Anvil Local";
 export default function AppFrame({ account = "", connecting = false, onConnect, children }: {
   account?: string;
@@ -18,7 +23,7 @@ export default function AppFrame({ account = "", connecting = false, onConnect, 
         <span className="testnet">{NETWORK_NAME}</span>
       </div>
 
-      <button className="wallet-button" onClick={onConnect} disabled={connecting}>
+      <button type="button" className="wallet-button" onClick={onConnect} disabled={connecting}>
         {account ? (<>● {`${account.slice(0, 6)}...${account.slice(-4)}`}</>) : connecting ? ("Connecting...") : ("Connect Wallet")}
       </button>
     </header>

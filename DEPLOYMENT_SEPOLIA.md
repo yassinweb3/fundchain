@@ -112,11 +112,13 @@ reviewed fee-ceiling flags supported by Foundry 1.8.1. Adding --verify requests
 explorer source verification using the locally supplied ETHERSCAN_API_KEY.
 CI never runs this keystore command and never receives wallet or RPC secrets.
 
-Planning allowance: approximately 20-30 test transactions and 5 million gas.
-At illustrative prices of 1-10 gwei this is 0.005-0.05 Sepolia ETH, plus campaign
-deposits. A provisional 0.1 test ETH across accounts is sufficient only if live
-estimates fit it. Use small deposits; stop instead of increasing an approved cap.
-No live fee quote or faucet funding was requested during preparation.
+Plan approximately 20-30 test transactions and re-estimate each operation.
+The original 5-million-gas planning allowance is obsolete on current Sepolia:
+earlier provider estimates were about 7.06 million gas for deployment alone.
+These historical observations are not a current fee quote. Use a reviewed gas limit multiplied by a max fee per gas as
+the maximum cost, rather than the old local simulation estimate. A provisional
+0.1 test ETH across accounts is sufficient only if current estimates fit it.
+Use small deposits; stop instead of increasing an approved cap.
 
 ## Receipt, source verification, and exact bytecode identity
 
@@ -203,3 +205,16 @@ navigation; after reload use wallet history before retrying uncertain submission
 
 Current online Foundry docs may describe newer releases. Pinned local CLI help and
 the tested 1.8.1 commands take precedence; do not upgrade tools during deployment.
+
+Simulation explicitly selects --rpc-url fundchain_sepolia. The alias resolves
+SEPOLIA_RPC_URL from the sanitized child environment, keeping credential URLs out
+of command arguments. No chain override or fallback to local Anvil is used; RPC
+selection failure stops the simulation. Compiler settings are unchanged.
+
+Gas estimates must be reconciled against both live providers. Historical RPC
+estimates exceeded the pinned local simulator estimate; the cause is not
+established by these offline checks. Compiler target Osaka remains unchanged
+for bytecode identity; successful local simulation
+is not proof that its gas allowance is sufficient on the current network. The
+helper reports a mismatch and RPC estimates take precedence for budgeting. Any
+gas limit and EIP-1559 fee ceiling require review and approval before signing.

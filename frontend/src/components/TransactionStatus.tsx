@@ -9,10 +9,10 @@ export default function TransactionStatus({ transactions }: {
     {tx.hash && <p className="transaction-context">Transaction hash: {tx.hash}</p>}
     {tx.error && <p role="alert">{tx.error}</p>}
     {tx.refreshWarning && <p>{tx.refreshWarning}</p>}
-    {tx.status === "tracking-unavailable" && !tx.manualReview && (<button className="secondary-button" disabled={transactions.working} onClick={() => transactions.retryTracking()}>Check transaction status</button>)}
+    {tx.status === "tracking-unavailable" && !tx.manualReview && (<button type="button" className="secondary-button" disabled={transactions.working} onClick={() => transactions.retryTracking()}>Check transaction status</button>)}
     {tx.manualReview && (<>
       <p>Only continue after checking wallet history and confirming the requested action was not sent.</p>
-      <button className="secondary-button" disabled={transactions.working} onClick={transactions.acknowledgeUnsent}>I verified the action was not sent</button>
+      <button type="button" className="secondary-button" disabled={transactions.working} onClick={transactions.acknowledgeUnsent}>I verified the action was not sent</button>
     </>)}
   </section>) : null;
 }

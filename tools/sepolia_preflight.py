@@ -126,10 +126,21 @@ def main():
             env = {key: os.environ[key] for key in (
                 "PATH", "HOME", "USER", "LOGNAME", "TMPDIR", "TEMP", "LANG", "LC_ALL"
             ) if key in os.environ}
-            env["ETH_RPC_URL"] = primary
-            command([FORGE, "script", "script/DeploySepolia.s.sol:DeploySepolia",
-                     "--offline", "--sender", sender, "--sig", "run(address)", sender], "Unsigned RPC simulation", env)
+            env["SEPOLIA_RPC_URL"] = primary
+            output = command([FORGE, "script", "script/DeploySepolia.s.sol:DeploySepolia",
+                     "--rpc-url", "fundchain_sepolia", "--offline", "--sender", sender,
+                     "--sig", "run(address)", sender], "Unsigned RPC simulation", env)
+            reported_chain = re.search(r"Chain\s+(\d+)\b", output)
+            if not reported_chain or int(reported_chain[1]) != CHAIN_ID:
+                raise ValueError("Unsigned simulation did not confirm Sepolia; no local fallback is allowed")
+            reported_gas = re.search(r"Estimated total gas used for script:\s*(\d+)", output)
+            if not reported_gas:
+                raise ValueError("Unsigned simulation gas estimate is unavailable")
+            summary["simulationGasEstimate"] = int(reported_gas[1])
+            summary["rpcGasEstimateExceedsSimulation"] = gas > int(reported_gas[1])
             summary["simulation"] = "passed (no signing or submission)"
+            if summary["rpcGasEstimateExceedsSimulation"]:
+                summary["gasBudgetNote"] = "Use current RPC gas estimates; the pinned simulator underestimates network gas."
     print(json.dumps(summary, indent=2))
 
 

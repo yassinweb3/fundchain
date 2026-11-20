@@ -16,3 +16,6 @@ runs = 1000
 runs = 256
 depth = 128
 fail_on_revert = true
+
+[rpc_endpoints]
+fundchain_sepolia = "${SEPOLIA_RPC_URL}"

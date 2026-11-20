@@ -1,5 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap");
-
 .notice.transaction {
   background: #151e33;
   border: 1px solid #566c94;
@@ -21,7 +19,8 @@
 }
 
 :root {
-  font-family: "DM Sans", sans-serif;
+  font-family: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --gutter: clamp(1rem, 3vw, 2.5rem);
   color: #f4f6fb;
   background: #070b14;
   font-synthesis: none;
@@ -38,7 +37,7 @@ html {
 
 body {
   margin: 0;
-  min-width: 320px;
+  min-width: 0;
   min-height: 100vh;
   background:
     radial-gradient(
@@ -80,8 +79,9 @@ button:disabled {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 20px;
-  padding: 0 max(5%, calc((100% - 1280px) / 2));
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px max(var(--gutter), calc((100% - 1280px) / 2));
   background: rgba(7, 11, 20, 0.82);
   backdrop-filter: blur(18px);
   position: sticky;
@@ -144,20 +144,20 @@ button:disabled {
 /* Main */
 
 .container {
-  width: min(1280px, calc(100% - 48px));
+  width: min(1280px, calc(100% - 2 * var(--gutter)));
   margin: auto;
 }
 
 /* Hero */
 
 .hero {
-  min-height: 440px;
-  display: flex;
-  justify-content: space-between;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
   align-items: center;
-  gap: 50px;
-  padding: 64px 60px;
-  margin: 38px 0 24px;
+  gap: 24px;
+  padding: clamp(20px, 4vw, 56px);
+  margin: clamp(16px, 3vw, 32px) 0 24px;
   border-radius: 26px;
   position: relative;
   overflow: hidden;
@@ -215,7 +215,7 @@ button:disabled {
   display: inline-block;
   font-size: 10px;
   font-weight: 800;
-  letter-spacing: 2.1px;
+  letter-spacing: 0.12em;
   color: #a99cff;
 }
 
@@ -228,9 +228,9 @@ button:disabled {
 
 .hero h1 {
   max-width: 660px;
-  font-size: clamp(43px, 5.2vw, 67px);
-  line-height: 1.03;
-  letter-spacing: -3px;
+  font-size: clamp(2rem, 1.2rem + 3.2vw, 3.75rem);
+  line-height: 1.1;
+  letter-spacing: -0.04em;
   margin: 21px 0 20px;
 }
 
@@ -246,7 +246,7 @@ button:disabled {
   margin: 0;
   color: #aab3c7;
   line-height: 1.75;
-  font-size: 16px;
+  font-size: clamp(0.875rem, 0.8rem + 0.3vw, 1rem);
 }
 
 .primary-link,
@@ -284,10 +284,11 @@ button:disabled {
 
 .hero-art {
   position: relative;
-  width: 350px;
-  height: 300px;
+  width: 100%;
+  max-width: 350px;
+  aspect-ratio: 7 / 6;
   flex-shrink: 0;
-  display: grid;
+  display: none;
   place-items: center;
 }
 
@@ -317,14 +318,14 @@ button:disabled {
 }
 
 .hero-orbit-one {
-  width: 315px;
+  width: 95%;
   height: 130px;
   transform: rotate(-12deg);
 }
 
 .hero-orbit-two {
-  width: 265px;
-  height: 265px;
+  width: 80%;
+  aspect-ratio: 1;
   border-color: rgba(78, 220, 185, 0.1);
   transform: rotate(25deg);
 }
@@ -401,9 +402,9 @@ button:disabled {
 
 .stats {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
-  margin-bottom: 64px;
+  margin-bottom: clamp(24px, 4vw, 40px);
 }
 
 .stat-card,
@@ -416,8 +417,8 @@ button:disabled {
 }
 
 .stat-card {
-  min-height: 135px;
-  padding: 24px;
+  min-height: 96px;
+  padding: clamp(16px, 2vw, 24px);
   border-radius: 15px;
   display: flex;
   flex-direction: column;
@@ -435,8 +436,8 @@ button:disabled {
   position: absolute;
   width: 70px;
   height: 70px;
-  right: -30px;
-  top: -30px;
+  right: 0;
+  top: 0;
   border-radius: 50%;
   background: rgba(119, 94, 255, 0.1);
   filter: blur(5px);
@@ -458,7 +459,7 @@ button:disabled {
 }
 
 .stat-card strong {
-  font-size: 26px;
+  font-size: clamp(1.25rem, 1rem + 1vw, 1.75rem);
   letter-spacing: -0.7px;
 }
 
@@ -470,7 +471,7 @@ button:disabled {
 
 .content-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 350px;
+  grid-template-columns: minmax(0, 1fr);
   gap: 28px;
   align-items: start;
 }
@@ -504,7 +505,7 @@ button:disabled {
 
 .campaign-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 19px;
 }
 
@@ -524,7 +525,7 @@ button:disabled {
 }
 
 .campaign-cover {
-  height: 132px;
+  height: clamp(88px, 10vw, 132px);
   position: relative;
   display: flex;
   align-items: center;
@@ -581,7 +582,7 @@ button:disabled {
 }
 
 .campaign-body {
-  padding: 21px;
+  padding: clamp(16px, 2vw, 21px);
 }
 
 .campaign-top,
@@ -719,10 +720,9 @@ input:focus {
 /* Create campaign */
 
 .create-panel {
-  padding: 27px;
+  padding: clamp(20px, 2.5vw, 27px);
   border-radius: 17px;
-  position: sticky;
-  top: 100px;
+  position: static;
 }
 
 .create-panel > p {
@@ -782,7 +782,7 @@ input:focus {
 .empty-state {
   text-align: center;
   border-radius: 17px;
-  padding: 70px 25px;
+  padding: clamp(24px, 5vw, 48px) 20px;
 }
 
 .empty-state h3 {
@@ -803,8 +803,8 @@ input:focus {
 /* Footer */
 
 .footer {
-  width: min(1280px, calc(100% - 48px));
-  margin: 85px auto 0;
+  width: min(1280px, calc(100% - 2 * var(--gutter)));
+  margin: clamp(32px, 5vw, 64px) auto 0;
   padding: 30px 0 35px;
   border-top: 1px solid rgba(255, 255, 255, 0.07);
   display: flex;
@@ -814,192 +814,66 @@ input:focus {
   font-size: 11px;
 }
 
-/* Responsive */
-
-@media (max-width: 1050px) {
-  .hero {
-    padding: 55px 45px;
-  }
-
-  .hero-art {
-    width: 290px;
-  }
-
-  .hero-image {
-    width: 240px;
-  }
-
-  .content-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .create-panel {
-    position: static;
-  }
-}
-
-@media (max-width: 800px) {
-  .hero {
-    min-height: auto;
-  }
-
-  .hero-art {
-    width: 230px;
-    height: 250px;
-  }
-
-  .hero-image {
-    width: 200px;
-  }
-
-  .hero-badge {
-    display: none;
-  }
-
-  .campaign-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 700px) {
-  .header {
-    padding: 0 16px;
-    min-height: 70px;
-  }
-
-  .testnet {
-    display: none;
-  }
-
-  .brand {
-    font-size: 18px;
-  }
-
-  .brand-icon {
-    width: 35px;
-    height: 35px;
-  }
-
-  .wallet-button {
-    padding: 10px 12px;
-    font-size: 12px;
-  }
-
-  .container {
-    width: min(100% - 28px, 1280px);
-  }
-
-  .hero {
-    margin-top: 20px;
-    padding: 42px 27px;
-    border-radius: 20px;
-  }
-
-  .hero h1 {
-    font-size: clamp(38px, 12vw, 52px);
-    letter-spacing: -2px;
-  }
-
-  .hero p {
-    font-size: 14px;
-  }
-
-  .hero-art {
-    display: none;
-  }
-
-  .stats {
-    grid-template-columns: 1fr;
-    gap: 12px;
-    margin-bottom: 50px;
-  }
-
-  .stat-card {
-    min-height: 115px;
-  }
-
-  .section-heading {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .section-heading .secondary-button {
-    width: 100%;
-  }
-
-  .create-panel {
-    padding: 23px;
-  }
-
-  .footer {
-    width: min(100% - 28px, 1280px);
-    flex-direction: column;
-    padding-bottom: 28px;
-    margin-top: 60px;
-  }
-}
-
-@media (max-width: 430px) {
-  .header {
-    gap: 10px;
-  }
-
-  .wallet-button {
-    max-width: 150px;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-  }
-
-  .hero {
-    padding: 35px 22px;
-  }
-
-  .hero h1 {
-    font-size: 38px;
-  }
-
-  .campaign-body {
-    padding: 18px;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  html {
-    scroll-behavior: auto;
-  }
-
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
-
-/* Keyboard access, resilient monetary/address layout, and page controls. */
-:where(button, a, input):focus-visible {
-  outline: 3px solid #b7aaff;
-  outline-offset: 3px;
-}
-.skip-link { position: fixed; left: 16px; top: -100px; z-index: 100; background: #151e33; padding: 12px; }
-.skip-link:focus { top: 12px; }
-.pagination { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 24px; }
-.pagination span { flex: 1 1 160px; }
-.data-freshness { color: #b6c1d4; font-size: 13px; }
-.funding-row, .campaign-details { flex-wrap: wrap; }
-.funding-row > *, .stat-card strong, .testnet { overflow-wrap: anywhere; min-width: 0; }
-.header .brand { min-width: 0; }
-button, .primary-link { min-height: 44px; }
+/* Mobile-first layout: content wraps rather than hiding overflow. */
+:where(.brand, .hero-content, .hero-art, .stat-card, .campaign-section,
+ .campaign-card, .campaign-body, .create-panel, .security-note > div) { min-width: 0; }
+:where(h1, h2, h3, p, button, label, .notice, .testnet, .stat-card strong) { overflow-wrap: anywhere; }
+button, .primary-link { min-height: 44px; min-width: 44px; max-width: 100%; white-space: normal; }
+button { line-height: 1.4; }
+input { font-size: 1rem; min-height: 44px; }
+.brand { display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 3px 8px; font-size: 1.0625rem; }
+.brand-icon { grid-row: span 2; width: 32px; height: 36px; border-radius: 10px; }
+.testnet { margin: 0; padding: 3px 6px; font-size: 0.625rem; letter-spacing: 0.04em; }
+.wallet-button { font-size: 0.75rem; padding: 10px; }
+.eyebrow { max-width: 100%; line-height: 1.6; }
+.hero-content { max-width: 650px; }
+.hero h1 { margin: 20px 0 16px; }
+.primary-link { margin-top: 22px; font-size: 0.875rem; }
+.section-heading { align-items: stretch; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+.section-heading h2, .create-panel h2 { font-size: clamp(1.375rem, 1.1rem + 1vw, 1.6875rem); }
+.campaign-top, .funding-row, .campaign-details { flex-wrap: wrap; }
+.funding-row > *, .stat-card strong { min-width: 0; overflow-wrap: anywhere; }
+.owner { margin-bottom: 20px; }
 .owner, .campaign-id, .campaign-details, .funding-row span,
 .stat-card > span, .stat-card small, .section-heading p, .create-panel > p,
 .security-note p, .empty-state p, .footer { color: #b6c1d4; }
+.owner, .campaign-id, .campaign-details, .funding-row span, .stat-card small,
+.security-note p, .security-note strong, .hint, .contribution-note { font-size: 0.75rem; }
 input::placeholder { color: #a8b5cb; }
 [aria-invalid="true"] { border-color: #ff9eab; }
-@media (max-width: 430px) {
- .brand { gap: 7px; }
- .brand-icon { width: 28px; height: 28px; flex-shrink: 0; }
- .wallet-button { flex-shrink: 0; }
- .funding-row { align-items: flex-start; }
+.pagination { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: center; margin-top: 24px; }
+.pagination span { grid-column: 1 / -1; grid-row: 1; overflow-wrap: anywhere; }
+.pagination button:last-child:nth-of-type(3) { grid-column: 1 / -1; }
+.data-freshness { color: #b6c1d4; font-size: 0.8125rem; }
+.footer { flex-direction: column; gap: 12px; font-size: 0.75rem; }
+:where(button, a, input):focus-visible { outline: 3px solid #b7aaff; outline-offset: 3px; }
+.skip-link { position: fixed; left: 16px; top: -100px; z-index: 100; background: #151e33; padding: 12px; }
+.skip-link:focus { top: 12px; }
+#campaigns, #main { scroll-margin-top: 110px; }
+@media (min-width: 430px) {
+ .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+ .stat-card:last-child { grid-column: 1 / -1; }
+}
+@media (min-width: 768px) {
+ .brand { display: flex; gap: 11px; font-size: 1.3125rem; }
+ .brand-icon { width: 39px; height: 39px; }
+ .testnet { padding: 6px 9px; }
+ .wallet-button { font-size: 0.875rem; padding-inline: 17px; }
+ .hero { grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.7fr); }
+ .hero-art { display: grid; }
+ .hero-badge { font-size: 9px; padding: 7px; }
+ .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+ .stat-card:last-child { grid-column: auto; }
+ .campaign-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+ .section-heading { flex-direction: row; align-items: end; }
+ .pagination { display: flex; flex-wrap: wrap; }
+ .pagination span { flex: 1 1 160px; }
+ .footer { flex-direction: row; flex-wrap: wrap; }
+}
+@media (min-width: 1200px) {
+ .content-layout { grid-template-columns: minmax(0, 1fr) 350px; }
+}
+@media (prefers-reduced-motion: reduce) {
+ html { scroll-behavior: auto; }
+ *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }

@@ -14,14 +14,14 @@ export default function CampaignStats({ count, totalRaised }: {
     </div>
 
     <div className="stat-card">
-      <span>Current funds on this page</span>
+      <span>Campaign totals on this page</span>
 
       <strong>
         {totalRaised === null ? "Not loaded" : formatEther(totalRaised)}{" "}
         ETH
       </strong>
 
-      <small>Not lifetime contributions</small>
+      <small>Includes withdrawn funds</small>
     </div>
 
     <div className="stat-card">

@@ -24,7 +24,7 @@ export default function CampaignList({ wallet, data, transactions }: Props) {
         Connect MetaMask to explore campaigns on your configured blockchain.
       </p>
 
-      <button className="primary-button" onClick={connectWallet} disabled={wallet.connecting}>
+      <button type="button" className="primary-button" onClick={connectWallet} disabled={wallet.connecting}>
         {wallet.connecting ? "Connecting..." : "Connect Wallet"}
       </button>
     </div>) : !data.snapshot ? (<div className="empty-state" role="status">
@@ -38,10 +38,10 @@ export default function CampaignList({ wallet, data, transactions }: Props) {
       {campaigns.map(campaign => <CampaignCard key={campaign.id} campaign={campaign} now={now!} account={account} contractAddress={wallet.session!.config.address} loading={loading} execute={transactions.execute} />)}
     </div>)}
     {account && <nav aria-label="Campaign pages" className="pagination">
-      <button className="secondary-button" disabled={!data.snapshot || data.refreshing || data.snapshot.start >= data.snapshot.total} onClick={data.newer}>Previous page</button>
+      <button type="button" className="secondary-button" disabled={!data.snapshot || data.refreshing || data.snapshot.start >= data.snapshot.total} onClick={data.newer}>Previous page</button>
       <span role="status">{campaigns.length ? `Campaigns #${campaigns[0].id} to #${campaigns[campaigns.length - 1].id}` : data.snapshot ? "No campaigns on this page" : "Loading campaign page..."}</span>
-      <button className="secondary-button" disabled={!data.snapshot || data.refreshing || data.snapshot.start <= PAGE_SIZE} onClick={data.older}>Next page</button>
-      <button className="secondary-button" disabled={!data.snapshot || data.refreshing || data.snapshot.start >= data.snapshot.total} onClick={data.newest}>View newest campaigns</button>
+      <button type="button" className="secondary-button" disabled={!data.snapshot || data.refreshing || data.snapshot.start <= PAGE_SIZE} onClick={data.older}>Next page</button>
+      <button type="button" className="secondary-button" disabled={!data.snapshot || data.refreshing || data.snapshot.start >= data.snapshot.total} onClick={data.newest}>View newest campaigns</button>
     </nav>}
   </>);
 }

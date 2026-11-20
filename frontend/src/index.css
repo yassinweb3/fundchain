@@ -1,12 +1,12 @@
 :root {
-  font-family: "DM Sans", sans-serif;
+  font-family: "DM Sans", ui-sans-serif, system-ui, sans-serif;
   background: #0b1020;
   color: #e9edf5;
 }
 
 body {
   margin: 0;
-  min-width: 320px;
+  min-width: 0;
 }
 
 #root {

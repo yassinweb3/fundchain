@@ -1,6 +1,7 @@
 import contextlib
 import importlib.util
 import io
+import json
 from pathlib import Path
 import sys
 import unittest
@@ -72,7 +73,8 @@ class PreflightTest(unittest.TestCase):
                 preflight.main()
             build.assert_not_called()
 
-    def run_online(self, mode="rpc", address=None, code="0x6000", balance=1000):
+    def run_online(self, mode="rpc", address=None, code="0x6000", balance=1000,
+                   simulation_output="Chain 11155111\nEstimated total gas used for script: 130"):
         artifact = {"bytecode": {"object": "0x6000"}, "deployedBytecode": {"object": "0x6000"}}
         methods = []
         def rpc(_url, method, _params):
@@ -83,11 +85,12 @@ class PreflightTest(unittest.TestCase):
         args = ["preflight", "--mode", mode] + (["--address", address] if address else [])
         with patch.object(sys, "argv", args), patch.dict(preflight.os.environ, {
             "SEPOLIA_RPC_URL": PRIMARY, "SEPOLIA_SECONDARY_RPC_URL": SECONDARY,
-            "DEPLOYER_ADDRESS": SENDER, "ETH_KEYSTORE": "unused", "ETH_PASSWORD": "unused"
+            "DEPLOYER_ADDRESS": SENDER, "ETH_KEYSTORE": "unused", "ETH_PASSWORD": "unused",
+            "ETH_RPC_URL": "http://127.0.0.1:8545", "FOUNDRY_ETH_RPC_URL": "http://127.0.0.1:8545"
         }), patch.object(preflight, "artifact_check", return_value=(artifact, "0xhash")), patch.object(
             preflight, "check_networks", return_value={"number": "0x7"}
         ), patch.object(preflight, "rpc", side_effect=rpc), patch.object(
-            preflight, "command", return_value=""
+            preflight, "command", return_value=simulation_output
         ) as command, contextlib.redirect_stdout(io.StringIO()):
             preflight.main()
             return command.call_args_list, methods
@@ -97,10 +100,31 @@ class PreflightTest(unittest.TestCase):
         argv = calls[0].args[0]
         for forbidden in ["--broadcast", "--account", "--private-key", "--unlocked", "--resume"]:
             self.assertNotIn(forbidden, argv)
-        self.assertEqual(calls[0].args[2]["ETH_RPC_URL"], PRIMARY)
+        self.assertEqual(argv[argv.index("--rpc-url") + 1], "fundchain_sepolia")
+        self.assertEqual(calls[0].args[2]["SEPOLIA_RPC_URL"], PRIMARY)
+        self.assertNotIn(PRIMARY, argv)
+        self.assertNotIn("ETH_RPC_URL", calls[0].args[2])
+        self.assertNotIn("FOUNDRY_ETH_RPC_URL", calls[0].args[2])
+        self.assertNotIn("--chain", argv)
         self.assertNotIn("ETH_KEYSTORE", calls[0].args[2])
         self.assertNotIn("ETH_PASSWORD", calls[0].args[2])
         self.assertFalse(any("send" in method.lower() for method in methods))
+
+    def test_simulation_must_report_sepolia_not_anvil(self):
+        with self.assertRaisesRegex(ValueError, "did not confirm Sepolia"):
+            self.run_online(mode="simulate", simulation_output="Chain 31337")
+
+    def test_simulation_must_report_gas_before_success(self):
+        with self.assertRaisesRegex(ValueError, "gas estimate is unavailable"):
+            self.run_online(mode="simulate", simulation_output="Chain 11155111")
+
+    def test_network_gas_mismatch_is_reported_for_budgeting(self):
+        with patch("builtins.print") as output:
+            self.run_online(mode="simulate", simulation_output="Chain 11155111\nEstimated total gas used for script: 1")
+            summary = json.loads(output.call_args.args[0])
+            self.assertTrue(summary["rpcGasEstimateExceedsSimulation"])
+            self.assertEqual(summary["estimatedGas"], 100)
+            self.assertIn("RPC gas estimates", summary["gasBudgetNote"])
 
     def test_insufficient_balance_stops(self):
         with self.assertRaisesRegex(ValueError, "Insufficient"):

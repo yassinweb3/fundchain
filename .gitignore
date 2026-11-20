@@ -58,3 +58,14 @@ Thumbs.db
 
 # Documentation build output
 docs/
+
+# Responsive browser-test artifacts
+frontend/test-results/
+frontend/playwright-report/
+
+# Signing material must stay outside the repository
+keystores/
+*.keystore
+*.key
+*.pem
+*.password

@@ -36,5 +36,5 @@ it("exposes capped funding progress and exact bigint page totals", () => {
  render(<><CampaignStats count={500} totalRaised={value} /><CampaignCard campaign={{ id: 1, owner: ALICE, goal: 10n, raised: 20n, deadline: 100, withdrawn: false, contribution: 0n }} now={0} account={ALICE} contractAddress={CONTRACT_ADDRESS} loading={false} execute={vi.fn()} /></>);
  expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe("100");
  expect(screen.getByText(/123456789012345678.901234567890123456/)).toBeTruthy();
- expect(screen.getByText("Current funds on this page")).toBeTruthy();
+ expect(screen.getByText("Campaign totals on this page")).toBeTruthy();
 });

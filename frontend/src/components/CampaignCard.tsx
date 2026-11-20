@@ -133,7 +133,7 @@ export default function CampaignCard({ campaign, now, account, contractAddress, 
       {!ended && (<div className="contribute-box">
         <input type="number" min="0" step="any" placeholder="Amount in ETH" ref={amountRef} aria-invalid={invalidField === "amount"} aria-describedby={invalidField === "amount" ? errorId : undefined} aria-label={`Contribution for campaign ${campaign.id}`} value={amount} onChange={event => setAmount(event.target.value)} disabled={loading} />
 
-        <button className="primary-button" disabled={loading} onClick={() => contribute()}>
+        <button type="button" className="primary-button" disabled={loading} onClick={() => contribute()}>
           Contribute →
         </button>
       </div>)}
@@ -145,11 +145,11 @@ export default function CampaignCard({ campaign, now, account, contractAddress, 
         {recipient.trim() && <p>Send {formatEther(canWithdraw ? campaign.raised : campaign.contribution)} ETH to {recipient.trim()}</p>}
       </div>)}
 
-      {canWithdraw && (<button className="primary-button full-width" disabled={loading} onClick={() => settle(false)}>
+      {canWithdraw && (<button type="button" className="primary-button full-width" disabled={loading} onClick={() => settle(false)}>
         Withdraw Funds
       </button>)}
 
-      {canRefund && (<button className="secondary-button full-width" disabled={loading} onClick={() => settle(true)}>
+      {canRefund && (<button type="button" className="secondary-button full-width" disabled={loading} onClick={() => settle(true)}>
         Claim Refund ({formatEther(campaign.contribution)}{" "}
         ETH)
       </button>)}
